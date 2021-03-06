@@ -3,12 +3,10 @@ from flask import g
 import psycopg2
 from settings import DB_NAME
 
-conn_dev = psycopg2.connect(database = DB_NAME)
-cursor = conn_dev.cursor()
-
 def get_db():
     if "db" not in g:
-        g.db = psycopg2.connect(dbname = current_app.config['DATABASE'])
+        g.db = psycopg2.connect(dbname=current_app.config['DATABASE'], host=current_app.config['DB_HOST'], 
+            user=current_app.config['DB_USER'], password=current_app.config['DB_PASSWORD'])
     return g.db
 
 def close_db(e=None):
@@ -75,12 +73,12 @@ def find_by_name(Class, name, cursor):
     obj = build_from_record(Class, record)
     return obj
 
-def find_by_amadeus_id(Class, id, cursor):
-    query = f"""SELECT * FROM {Class.__table__} WHERE amadeus_id = %s """
-    cursor.execute(query, (id,))
-    record =  cursor.fetchone()
-    obj = build_from_record(Class, record)
-    return obj    
+# def find_by_amadeus_id(Class, id, cursor):
+#     query = f"""SELECT * FROM {Class.__table__} WHERE amadeus_id = %s """
+#     cursor.execute(query, (id,))
+#     record =  cursor.fetchone()
+#     obj = build_from_record(Class, record)
+#     return obj    
 
 def find_or_create_by_name(Class, name, conn, cursor):
     obj = find_by_name(Class, name, cursor)

@@ -12,45 +12,70 @@ class Hotel:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    # Returns the hotel's id, name, lon, late. Used in /hotels route
+    @classmethod
+    def hotel_locations(self, cursor):
+        details_query = """SELECT hotels.id, hotels.name, locations.lon, locations.lat 
+                            FROM hotels JOIN locations ON locations.id = hotels.location_id""" 
+        cursor.execute(details_query)
+        location_records = cursor.fetchall()
+        return location_records
+
+    # Returns the cheapest rate, average rate, and percent discount of the cheapest rate. Used in /hotels/cheapest route
+    @classmethod 
+    def min_avg_rate(self, cursor): 
+        percent_disc_query = """SELECT hotels.name, offers.currency, MIN(offers.total_rate) as min_rate, 
+                                ROUND(AVG(offers.total_rate),2) AS avg_rate, 
+                                100*ROUND((MIN(offers.total_rate)/(AVG(offers.total_rate)))-1,2) AS percent_disc 
+                            FROM offers JOIN hotels ON offers.hotel_id = hotels.id 
+                            WHERE offers.created_at > '2021-03-05'::timestamp
+                            GROUP BY hotels.name, offers.currency 
+                            ORDER BY percent_disc ASC;"""
+        cursor.execute(percent_disc_query)
+        discount_records = cursor.fetchall()
+        return discount_records
+
+    # Uses the cheapest rate for a hotel and returns the dates that rate is available. Used in the /hotels/cheapest/<name> route
+    @classmethod
+    def cheapest_dates(self, cursor, name, rate):
+        cheapest_dates_query ="""SELECT hotels.name, offers.check_in, offers.currency, offers.total_rate, offers.created_at 
+                                FROM offers JOIN hotels on offers.hotel_id = hotels.id 
+                                WHERE offers.created_at > '2021-03-05'::timestamp AND hotels.name = %s AND offers.total_rate = %s;"""
+        cursor.execute(cheapest_dates_query, (name, rate,))
+        cheapest_dates_record = cursor.fetchall()
+        return cheapest_dates_record
+
+    # Searches the db for a hotel name and returns all of the availability from cheapest to most expensive
+    @classmethod # could turn this into an instance method. first find hotel by the name, then call hotel.selected_rates
+    def selected_hotel_rates(self, cursor, name): # Return the offer, ordered by total_rate ASC, where created_at , WHERE offers.hotel_id = self.id
+        selected_hotel_rate_query = """SELECT hotels.name, offers.currency, offers.check_in, offers.total_rate, offers.created_at
+                            FROM offers JOIN hotels ON offers.hotel_id = hotels.id 
+                            WHERE hotels.name = %s AND offers.created_at > '2021-03-05'::timestamp ORDER BY offers.total_rate ASC;""" # Current day - create_at < 1 day
+        cursor.execute(selected_hotel_rate_query, (name,))
+        selected_hotels = cursor.fetchall()
+        return selected_hotels
+
+    # Instance method that connects the offers table to the hotel table
+    def offers(self, cursor):
+        offers_query = """SELECT * FROM offers WHERE offers.hotel_id = %s AND offers.created_at > '2021-03-05'::timestamp"""
+        cursor.execute(offers_query, (self.id,))
+        records = cursor.fetchall()
+        return db.build_from_records(models.Offer, records)
+
+    # Instance method that connects the location table to the hotel table
     def location(self, cursor):
         location_query = """SELECT * FROM locations WHERE locations.id = %s"""
         cursor.execute(location_query, (self.location_id,))
         record = cursor.fetchone()
         return db.build_from_record(models.Location, record)
 
-    def offers(self, cursor):
-        offers_query = """SELECT * FROM offers WHERE offers.hotel_id = %s"""
-        cursor.execute(offers_query, (self.id,))
-        records = cursor.fetchall()
-        return db.build_from_records(models.Offer, records)
-
-    def cheapest(self, cursor):
-        offers_query = """SELECT * FROM offers WHERE offers.hotel_id = %s ORDER BY total_rate ASC"""
-        cursor.execute(offers_query, (self.id,))
-        records = cursor.fetchall()
-        return db.build_from_records(models.Offer, records)
-
+    # Takes a hotel object converts the attributes to dictionaries and adds the location and offers dictionaries.
     def to_json(self, cursor):
         offers = self.offers(cursor)
         location = self.location(cursor)
         hotel_dict = self.__dict__
         location_dict = location.__dict__
         offers_dicts = [offer.__dict__ for offer in offers]
-        # location_dicts = [location.__dict__ for location in locations]
         hotel_dict['location'] = location_dict
         hotel_dict['offers'] = offers_dicts
         return hotel_dict
-    
-    def to_json_cheapest(self, cursor):
-        offers = self.cheapest(cursor)
-        hotel_dict = self.__dict__
-        offers_dicts = [offer.__dict__ for offer in offers]
-        hotel_dict['offers'] = offers_dicts
-        return hotel_dict
-
-    @classmethod
-    def find_by_amadeus_id(self, amadeus_id, cursor):
-        hotels_query = """SELECT * FROM hotels WHERE amadeus_id = %s"""
-        cursor.execute(hotels_query, (amadeus_id, ))
-        record = cursor.fetchone()
-        return db.build_from_record(models.Hotel, record)

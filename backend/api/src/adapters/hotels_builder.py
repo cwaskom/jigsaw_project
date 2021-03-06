@@ -1,7 +1,7 @@
+import psycopg2
 import api.src.models as models
 import api.src.db as db
 import api.src.adapters as adapters
-import psycopg2
 
 
 class Builder:
@@ -13,6 +13,7 @@ class Builder:
             offer = OfferBuilder().run(hotel_details, hotel_obj, conn, cursor)
             offer.hotel_id = hotel_obj.id
             saved_offer = db.save(offer, conn, cursor)
+            print(saved_offer.__dict__)
             return {'hotel': hotel_obj, 'location': hotel_obj.location_id, 'offer': saved_offer} # LOCATION METHOD - RELATIONSHIP QUERY METHOD
 
         else:

@@ -1,4 +1,4 @@
 hotel_gds_export_prd.csv
 hotel_list_prod.csv
 hotel_list_dev.csv
-.env
+backend/.env

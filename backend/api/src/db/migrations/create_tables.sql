@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS locations (
   lat DECIMAL,
   address VARCHAR(255) NOT NULL,
   city_name VARCHAR(255) NOT NULL,
-  postal_code VARCHAR(255) NOT NULL,
+  postal_code VARCHAR(255),
   country_code VARCHAR(255) NOT NULL
 );
 

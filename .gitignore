@@ -1,6 +1,3 @@
-hotel_gds_export_prd.csv
-hotel_list_prod.csv
-hotel_list_dev.csv
 backend/.env
 new_frontend/
 backend/csv

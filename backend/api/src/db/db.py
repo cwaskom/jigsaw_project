@@ -73,12 +73,12 @@ def find_by_name(Class, name, cursor):
     obj = build_from_record(Class, record)
     return obj
 
-# def find_by_amadeus_id(Class, id, cursor):
-#     query = f"""SELECT * FROM {Class.__table__} WHERE amadeus_id = %s """
-#     cursor.execute(query, (id,))
-#     record =  cursor.fetchone()
-#     obj = build_from_record(Class, record)
-#     return obj    
+def find_by_amadeus_id(Class, id, cursor):
+    query = f"""SELECT * FROM {Class.__table__} WHERE amadeus_id = %s """
+    cursor.execute(query, (id,))
+    record =  cursor.fetchone()
+    obj = build_from_record(Class, record)
+    return obj    
 
 def find_or_create_by_name(Class, name, conn, cursor):
     obj = find_by_name(Class, name, cursor)

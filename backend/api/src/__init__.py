@@ -36,7 +36,6 @@ def create_app():
     def cheapest():
         conn = db.get_db()
         cursor = conn.cursor()
-
         hotel_rates_min_avg = models.Hotel.min_avg_rate(cursor)
         rate_min_avg_dict  = [dict(zip(['hotel', 'currency', 'cheapest', 'average', 'percent_discount'], hotel)) for hotel in hotel_rates_min_avg]
         return json.dumps(rate_min_avg_dict, default=str)
@@ -60,7 +59,7 @@ def create_app():
         return json.dumps(cheapest_dates_dict, default=str)
 
     # Returns a hotel's availability ordered cheapest to most expensive
-    @app.route('/hotels/<name>') # MAKE CREATED_AT SQL PARAMETER DYNAMIC
+    @app.route('/hotels/<name>') 
     def select_hotel_by_name(name):
         conn = db.get_db()
         cursor = conn.cursor()

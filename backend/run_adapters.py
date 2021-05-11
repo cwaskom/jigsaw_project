@@ -33,7 +33,7 @@ class RequestAndBuild:
             check_in = date.today() + timedelta(days=0) + timedelta(days=i)
             check_out = check_in + timedelta(days=1)
             print(f"{self.hotel_list}", check_in.strftime("%Y-%m-%d"), check_out.strftime("%Y-%m-%d"))
-            hotel_details = self.client.request_offers(f"{self.hotel_list}", check_in.strftime("%Y-%m-%d"), check_out.strftime("%Y-%m-%d")) # NEEDS ERROR HANDLING IF A HOTEL COMES BACK 400 - LOGGING?            
+            hotel_details = self.client.request_offers(f"{self.hotel_list}", check_in.strftime("%Y-%m-%d"), check_out.strftime("%Y-%m-%d"), currency='USD') # NEEDS ERROR HANDLING IF A HOTEL COMES BACK 400 - LOGGING?            
             for hotel_detail in hotel_details:
                 print(hotel_detail['hotel']['name'])
                 hotel_obj = self.builder.run(hotel_detail, self.conn, self.cursor)
@@ -41,4 +41,4 @@ class RequestAndBuild:
         return hotel_objs
         
 obj = RequestAndBuild()
-obj.run(60)
+obj.run(5)

@@ -2,7 +2,12 @@ import psycopg2
 import api.src.models as models
 import api.src.db as db
 import api.src.adapters as adapters
+from currency_converter import CurrencyConverter
 
+def convert_currency(amount, orig_currency):
+    c = CurrencyConverter()
+    new_currency = round(c.convert(amount, orig_currency, 'USD'), 2)
+    return new_currency
 
 class Builder:
     def run(self, hotel_details, conn, cursor):
@@ -18,7 +23,7 @@ class Builder:
 
         else:
             # run location, save location
-            location = LocationBuilder().run(hotel_details, conn, cursor) # This is returning a dict but save needs an obj
+            location = LocationBuilder().run(hotel_details, conn, cursor) 
             saved_location = db.save(location, conn, cursor)
             # run hotel, load in location, save hotel
             hotel = HotelBuilder().run(hotel_details, saved_location, conn, cursor)
@@ -77,8 +82,10 @@ class OfferBuilder:
         check_in = hotel_details['offers'][0]['checkInDate']
         check_out = hotel_details['offers'][0]['checkOutDate']
         available = hotel_details['available']
-        currency = hotel_details['offers'][0]['price']['currency']
-        total_rate = hotel_details['offers'][0]['price']['total']
+        orig_currency = hotel_details['offers'][0]['price']['currency']
+        orig_total_rate = hotel_details['offers'][0]['price']['total']
+        currency = 'USD'
+        total_rate = convert_currency(orig_total_rate, orig_currency)
         comm_percentage = None
         return dict(zip(self.attributes, [offer_id, check_in, check_out, available, currency, total_rate, comm_percentage]))
 

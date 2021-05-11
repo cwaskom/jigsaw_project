@@ -1,5 +1,6 @@
 import api.src.db as db
 import api.src.models as models
+import datetime
 
 class Hotel:
     __table__ = 'hotels'
@@ -12,6 +13,8 @@ class Hotel:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    
+
     # Returns the hotel's id, name, lon, late. Used in /hotels route
     @classmethod
     def hotel_locations(self, cursor):
@@ -21,27 +24,29 @@ class Hotel:
         location_records = cursor.fetchall()
         return location_records
 
-    # Returns the cheapest rate, average rate, and percent discount of the cheapest rate. Used in /hotels/cheapest route
+    # /hotels/cheapest: Returns the cheapest rate, average rate, and percent discount of the cheapest rate
     @classmethod 
     def min_avg_rate(self, cursor): 
         percent_disc_query = """SELECT hotels.name, offers.currency, MIN(offers.total_rate) as min_rate, 
-                                ROUND(AVG(offers.total_rate),2) AS avg_rate, 
+                                ROUND(AVG(offers.total_rate),2) AS avg_rate,  
                                 100*ROUND((MIN(offers.total_rate)/(AVG(offers.total_rate)))-1,2) AS percent_disc 
                             FROM offers JOIN hotels ON offers.hotel_id = hotels.id 
-                            WHERE offers.created_at > '2021-03-05'::timestamp
-                            GROUP BY hotels.name, offers.currency 
+                            WHERE offers.created_at > %s
+                            GROUP BY hotels.name, offers.currency
                             ORDER BY percent_disc ASC;"""
-        cursor.execute(percent_disc_query)
+        time_24_hours_ago = datetime.datetime.now() - datetime.timedelta(days=1)
+        cursor.execute(percent_disc_query, (time_24_hours_ago, ))
         discount_records = cursor.fetchall()
         return discount_records
 
-    # Uses the cheapest rate for a hotel and returns the dates that rate is available. Used in the /hotels/cheapest/<name> route
+    # /hotels/cheapest/<name>: Uses the cheapest rate for a hotel and returns the dates that rate is available
     @classmethod
     def cheapest_dates(self, cursor, name, rate):
         cheapest_dates_query ="""SELECT hotels.name, offers.check_in, offers.currency, offers.total_rate, offers.created_at 
                                 FROM offers JOIN hotels on offers.hotel_id = hotels.id 
-                                WHERE offers.created_at > '2021-03-05'::timestamp AND hotels.name = %s AND offers.total_rate = %s;"""
-        cursor.execute(cheapest_dates_query, (name, rate,))
+                                WHERE offers.created_at > %s AND hotels.name = %s AND offers.total_rate = %s;"""
+        time_24_hours_ago = datetime.datetime.now() - datetime.timedelta(days=1)
+        cursor.execute(cheapest_dates_query, (time_24_hours_ago, name, rate,))
         cheapest_dates_record = cursor.fetchall()
         return cheapest_dates_record
 
@@ -50,15 +55,17 @@ class Hotel:
     def selected_hotel_rates(self, cursor, name): # Return the offer, ordered by total_rate ASC, where created_at , WHERE offers.hotel_id = self.id
         selected_hotel_rate_query = """SELECT hotels.name, offers.currency, offers.check_in, offers.total_rate, offers.created_at
                             FROM offers JOIN hotels ON offers.hotel_id = hotels.id 
-                            WHERE hotels.name = %s AND offers.created_at > '2021-03-05'::timestamp ORDER BY offers.total_rate ASC;""" # Current day - create_at < 1 day
-        cursor.execute(selected_hotel_rate_query, (name,))
+                            WHERE hotels.name = %s AND offers.created_at > %s ORDER BY offers.total_rate ASC;""" 
+        time_24_hours_ago = datetime.datetime.now() - datetime.timedelta(days=1)
+        cursor.execute(selected_hotel_rate_query, (name, time_24_hours_ago, ))
         selected_hotels = cursor.fetchall()
         return selected_hotels
 
     # Instance method that connects the offers table to the hotel table
     def offers(self, cursor):
-        offers_query = """SELECT * FROM offers WHERE offers.hotel_id = %s AND offers.created_at > '2021-03-05'::timestamp"""
-        cursor.execute(offers_query, (self.id,))
+        offers_query = """SELECT * FROM offers WHERE offers.hotel_id = %s AND offers.created_at > %s"""
+        time_24_hours_ago = datetime.datetime.now() - datetime.timedelta(days=1)
+        cursor.execute(offers_query, (self.id, time_24_hours_ago,))
         records = cursor.fetchall()
         return db.build_from_records(models.Offer, records)
 
